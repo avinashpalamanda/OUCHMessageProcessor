@@ -1,9 +1,4 @@
 #include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <unordered_set>
-#include "MessageHeader.h"
-#include "MessageConverterUtility.h"
 #include "ProcessDataFromFile.h"
 
 int main()

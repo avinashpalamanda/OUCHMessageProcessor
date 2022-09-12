@@ -1,5 +1,6 @@
 #include "MessageConverterUtility.h"
 #include <sstream>
+#include <iostream>
 
 namespace MessageUtility
 {
@@ -27,14 +28,14 @@ namespace MessageUtility
     }
 
 
-    const unsigned int GetInputStream(const std::vector<char> &streamInVector, const int iPacketStartIndex)
+    const int GetInputStream(const std::vector<char> &streamInVector, const int iPacketStartIndex)
     {
         std::stringstream ss;
         ss << static_cast<int>(streamInVector[iPacketStartIndex]) << static_cast<int>(streamInVector[iPacketStartIndex+1]);
         return stoi(ss.str());
     }
 
-    const unsigned int GetPacketLength(const std::vector<char> &streamInVector, const int iPacketStartIndex)
+    const int GetPacketLength(const std::vector<char> &streamInVector, const int iPacketStartIndex)
     {
         std::stringstream ss;
         ss << static_cast<int>(streamInVector[iPacketStartIndex+2]) << static_cast<int>(streamInVector[iPacketStartIndex+3]) <<
@@ -42,7 +43,7 @@ namespace MessageUtility
         return stoi(ss.str());
     }
 
-    const unsigned int GetMessageLength(const std::vector<char> &streamInVector, const int iPacketStartIndex)
+    const int GetMessageLength(const std::vector<char> &streamInVector, const int iPacketStartIndex)
     {
         std::stringstream ss;
         auto iMessageStartIndex = iPacketStartIndex + _iPacketHeaderSize;
@@ -50,12 +51,58 @@ namespace MessageUtility
         return stoi(ss.str());
     }
 
-    stMessage MessageStreamTostPacketMessage(const std::vector<char> &result, int index, const unsigned int iStream)
+    std::unique_ptr<stMessage> CreateMessageStFromMessageType(enMessageType eMessageType)
     {
-        stMessage data;
+        std::unique_ptr<stMessage> message;
+        switch(eMessageType)
+        {
+            case eSystemMessage:
+                message.reset(new stSystemMessage());
+            case eAck:
+                message.reset(new stAckMessage());
+            case eReplace:
+                message.reset(new stReplaceMessage());
+            case eCancel:
+                message.reset(new stCancelMessage());
+            case eExecution:            
+                message.reset(new stExecutionMessage());
+            default:
+                break;
+        }
+        return message;
+    }
+
+    std::unique_ptr<stMessage> MessageStreamTostPacketMessage(const std::vector<char> &result, int index, const unsigned int iStream)
+    {
         auto iActualMessageIndex = index + _iMessageLengthSize;
-        data._MessageType = result[iActualMessageIndex++];
-        data._PacketType = result[iActualMessageIndex++];
-        return data;
+        auto packetType =  result[iActualMessageIndex++];
+        auto messageType = static_cast<enMessageType>(result[iActualMessageIndex++]);
+        
+        auto processedMessage = CreateMessageStFromMessageType(messageType);
+        processedMessage->_PacketType = packetType;      
+        processedMessage->_MessageType = messageType;
+
+        switch(messageType)
+        {
+            case eSystemMessage:
+            case eAck:
+            case eReplace:
+            case eCancel:
+                break;
+            case eExecution:
+            {
+                auto iExecutedSharesIndex = index +26;
+                std::stringstream ss;
+                ss << static_cast<int>(result[iExecutedSharesIndex]) << static_cast<int>(result[iExecutedSharesIndex+1]) 
+                    <<  static_cast<int>(result[iExecutedSharesIndex+2]) <<  static_cast<int>(result[iExecutedSharesIndex+3]);
+                static_cast<stExecutionMessage*>(processedMessage.get())->dExecutedShares = stoi(ss.str());
+                break;
+            }
+            default:
+                break;
+        }
+
+
+        return processedMessage;
     }
 }

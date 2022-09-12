@@ -1,8 +1,9 @@
 #pragma once
 
-#include <vector>
-#include <unordered_map>
 #include "MessageHeader.h"
+#include <unordered_map>
+#include <memory>
+
 
 namespace MessageUtility
 {
@@ -12,8 +13,8 @@ namespace MessageUtility
     const int MessageLengthFromMessageType(const char sMessageType);
     const int MessageStartIndexFromPacketIndex(const int iPacketStartIndex);
 
-    const unsigned int GetInputStream(const std::vector<char> &streamInVector, const int iPacketStartIndex);
-    const unsigned int GetPacketLength(const std::vector<char> &streamInVector, const int iPacketStartIndex);
-    const unsigned int GetMessageLength(const std::vector<char> &streamInVector, const int iPacketStartIndex);
-    stMessage MessageStreamTostPacketMessage(const std::vector<char> &streamInVector, int index, const unsigned int iStream);    
+    const int GetInputStream(const std::vector<char> &streamInVector, const int iPacketStartIndex);
+    const int GetPacketLength(const std::vector<char> &streamInVector, const int iPacketStartIndex);
+    const int GetMessageLength(const std::vector<char> &streamInVector, const int iPacketStartIndex);
+    std::unique_ptr<stMessage> MessageStreamTostPacketMessage(const std::vector<char> &streamInVector, int index, const unsigned int iStream);    
 };

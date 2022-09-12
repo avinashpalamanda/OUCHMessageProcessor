@@ -1,8 +1,9 @@
+#include "MessageHeader.h"
 #include "ProcessDataFromFile.h"
 #include "MessageConverterUtility.h"
 #include <iostream>
 #include <fstream>
-#include <unordered_set>
+#include <map>
 
 ProcessDataFromFile::ProcessDataFromFile(std::string &sFileName)
 {
@@ -34,7 +35,7 @@ ProcessDataFromFile::ProcessData()
         }
         else
         {
-            _ProcessedData[iStream].push_back(MessageUtility::MessageStreamTostPacketMessage(_streamAsVector, iMessageStartIndex, iStream));            
+            _ProcessedData[iStream].push_back(std::move(MessageUtility::MessageStreamTostPacketMessage(_streamAsVector, iMessageStartIndex, iStream)));            
         }            
         iPacketIndex += iPacketLength + MessageUtility::_iPacketHeaderSize;
     }
@@ -44,27 +45,50 @@ ProcessDataFromFile::ProcessData()
 void
 ProcessDataFromFile::PrintData()
 {
-    std::cout << "Stream" << std::endl;
-    for (auto data : _ProcessedData)
+    std::map<unsigned int, sMessageStatistics> mAllStreamStatistics;
+    for (auto& streamMessages : _ProcessedData)
     {
-        std::cout << data.first << std::endl;
+        const auto& vMessages = streamMessages.second;
+        auto& statistics = mAllStreamStatistics[streamMessages.first];
+        for (const auto& message : vMessages)
+        {
+            switch(message->_MessageType)
+            {
+            case eSystemMessage:
+                ++statistics.iSystemEvent;
+                break;
+            case eAck:
+                ++statistics.iAccepted;
+                break;
+            case eReplace:
+                ++statistics.iReplaced;
+                break;
+            case eCancel:
+                ++statistics.iCancelled;
+                break;
+            case eExecution:
+                ++statistics.iExecuted;
+                statistics.dTotalExecutedShares = static_cast<stExecutionMessage*>(message.get())->dExecutedShares;
+                break;
+            case eInvalid:
+            default:
+                break;
+            }
+        }
     }
 
-    std::unordered_set<char> messageTypes;
-    for (auto data : _ProcessedData)
+    for (auto statistics : mAllStreamStatistics) 
     {
-        auto& sMessages = data.second;
-        for(auto message : sMessages)
-            messageTypes.insert(message._PacketType);
-    }
+        std::cout << "---------------------------------------------------------------------------" << std::endl;
+        std::cout << "Stream " << statistics.first << std::endl;
+        std::cout << "  Accepted:" << statistics.second.iAccepted <<" messages" << std::endl;
+        std::cout << "  System Event: " << statistics.second.iSystemEvent <<" messages" << std::endl;
+        std::cout << "  Replaced: " << statistics.second.iReplaced << " messages" << std::endl;
+        std::cout << "  Cancelled: " << statistics.second.iCancelled <<" messages"<< std::endl;
+        std::cout << "  Executed: " << statistics.second.iExecuted <<" messages: " <<
+                    statistics.second.dTotalExecutedShares << " executed shares" << std::endl;
 
-    std::cout << "Message Type" << std::endl;
-    for (auto data : messageTypes)
-    {
-        std::cout << data << std::endl;
     }
-
-    std::cout <<std::flush << std::endl;
 }
 
 
@@ -98,7 +122,7 @@ ProcessDataFromFile::AppendIncompleteDataAndProcess(const int iStream, const int
             auto sMessageType = itr_PendingToBeProcessed->second.vPendingBytesToBeProcessed[3];
             if(MessageUtility::MessageLengthFromMessageType(sMessageType) == itr_PendingToBeProcessed->second.iNumberOfBytesRecieved)
             {
-                _ProcessedData[iStream].push_back(MessageUtility::MessageStreamTostPacketMessage(itr_PendingToBeProcessed->second.vPendingBytesToBeProcessed, 0, iStream));              
+                _ProcessedData[iStream].push_back(std::move(MessageUtility::MessageStreamTostPacketMessage(itr_PendingToBeProcessed->second.vPendingBytesToBeProcessed, 0, iStream)));
                 _IncompleteMessage.erase(itr_PendingToBeProcessed);
             }
         }
