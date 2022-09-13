@@ -5,7 +5,7 @@
 #include <fstream>
 #include <map>
 
-ProcessDataFromFile::ProcessDataFromFile(std::string &sFileName)
+ProcessDataFromFile::ProcessDataFromFile(const std::string &sFileName)
 {
     std::ifstream ifs(sFileName, std::ios::binary | std::ios::ate);
     std::ifstream::pos_type totalSize = ifs.tellg();
@@ -15,6 +15,11 @@ ProcessDataFromFile::ProcessDataFromFile(std::string &sFileName)
     ifs.read(&_streamAsVector[0], totalSize);
 }
 
+/*Process the data from file
+ * 1) If stream as incomplete type collect the message and process it
+ * 2) If the recieved message is incomplete, add it buffer to be processed later
+ * 3) Recived full message process the data
+ * */
 bool
 ProcessDataFromFile::ProcessData()
 {
@@ -25,7 +30,7 @@ ProcessDataFromFile::ProcessData()
 
         const auto iMessageStartIndex = MessageUtility::MessageStartIndexFromPacketIndex(iPacketIndex);
             
-        if(CheckForExistingIncompleteMessage(iStream))
+        if(CheckForExistingIncompleteMessage(iStream)) // Check if the stream has incomplete file, if so proc
         {
             AppendIncompleteDataAndProcess(iStream, iPacketLength, iMessageStartIndex);
         }
@@ -42,6 +47,7 @@ ProcessDataFromFile::ProcessData()
     return true;
 }
 
+/*Print Message Statistics*/
 void
 ProcessDataFromFile::PrintData()
 {
@@ -92,12 +98,15 @@ ProcessDataFromFile::PrintData()
 }
 
 
+/*Check if stream as incomplete message*/
 bool
 ProcessDataFromFile::CheckForExistingIncompleteMessage(const int iStream)
 {
     return (_IncompleteMessage.find(iStream)!=_IncompleteMessage.end());
 }
 
+/*Check if message recieved is incomplete
+ * Compare recieved packet length with expected packet length*/
 bool
 ProcessDataFromFile::IsIncompleteMessage(const int iPacketLength, const int iPacketIndex)
 {
@@ -105,6 +114,7 @@ ProcessDataFromFile::IsIncompleteMessage(const int iPacketLength, const int iPac
     return (iMessageLength + MessageUtility::_iMessageLengthSize != iPacketLength);
 }
 
+/*If stream as incomplete, add the new message to stream buffer and process it.*/
 void
 ProcessDataFromFile::AppendIncompleteDataAndProcess(const int iStream, const int iPacketLength, const int iMessageStartIndex)
 {
@@ -129,6 +139,7 @@ ProcessDataFromFile::AppendIncompleteDataAndProcess(const int iStream, const int
     }
 }
 
+/*If the message is incomplete, add it to buffer where the message will be processed later*/
 void
 ProcessDataFromFile::AddToIncompleteData(const int iStream, const int iPacketLength, const int iPacketIndex, const int iMessageStartIndex)
 {

@@ -4,6 +4,7 @@
 
 namespace MessageUtility
 {
+    /*Get message length from Message Type*/
     const int MessageLengthFromMessageType(const char sMessageType)
     {
         switch(sMessageType)
@@ -22,12 +23,14 @@ namespace MessageUtility
         return 0;
     }
 
+    /*Get message start index from packet start index*/
     const int MessageStartIndexFromPacketIndex(const int iPacketStartIndex)
     {
         return (iPacketStartIndex + _iPacketHeaderSize);
     }
 
 
+    /*Get Input stream from packet header*/
     const int GetInputStream(const std::vector<char> &streamInVector, const int iPacketStartIndex)
     {
         std::stringstream ss;
@@ -35,6 +38,7 @@ namespace MessageUtility
         return stoi(ss.str());
     }
 
+    /*Get Packet length from Packet header*/
     const int GetPacketLength(const std::vector<char> &streamInVector, const int iPacketStartIndex)
     {
         std::stringstream ss;
@@ -43,6 +47,7 @@ namespace MessageUtility
         return stoi(ss.str());
     }
 
+    /*Get Message Length from packet*/
     const int GetMessageLength(const std::vector<char> &streamInVector, const int iPacketStartIndex)
     {
         std::stringstream ss;
@@ -51,6 +56,7 @@ namespace MessageUtility
         return stoi(ss.str());
     }
 
+    /*Get message structure from message type*/
     std::unique_ptr<stMessage> CreateMessageStFromMessageType(enMessageType eMessageType)
     {
         std::unique_ptr<stMessage> message;
@@ -72,6 +78,7 @@ namespace MessageUtility
         return message;
     }
 
+    /*From message stream to message structure*/
     std::unique_ptr<stMessage> MessageStreamTostPacketMessage(const std::vector<char> &result, int index, const unsigned int iStream)
     {
         auto iActualMessageIndex = index + _iMessageLengthSize;

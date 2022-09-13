@@ -6,7 +6,7 @@
 class ProcessDataFromFile
 {
 public:
-    ProcessDataFromFile(std::string &sFileName);
+    ProcessDataFromFile(const std::string &sFileName);
     bool ProcessData();
     void PrintData();
 
